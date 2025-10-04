@@ -1,3 +1,0 @@
-D:/dev/c++/wxWidgets/wxTranslate/build/CMakeFiles/wxTranslate.dir
-D:/dev/c++/wxWidgets/wxTranslate/build/CMakeFiles/ALL_BUILD.dir
-D:/dev/c++/wxWidgets/wxTranslate/build/CMakeFiles/ZERO_CHECK.dir
