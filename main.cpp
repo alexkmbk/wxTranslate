@@ -1,15 +1,20 @@
-﻿#include <wx/sstream.h>
-#include <wx/wx.h>
+﻿#include <wx/wx.h>
 #include <wx/webrequest.h>
 #include <wx/timer.h>
+#include <wx/textctrl.h>
+#include <wx/clipbrd.h>
 
 #include <sstream>
 #include <iomanip>
 #include <vector>
 #include <windows.h>
+#include <algorithm> 
 
-#include "lang.h"
+#include "translate.h"
 #include "taskbar.h"
+#include "selected_text.h"
+
+#include <debugapi.h>
 
 enum {
     ID_WebRequest = wxID_HIGHEST + 1,
@@ -20,6 +25,10 @@ enum {
 
 class MyFrame : public wxFrame
 {
+private:
+    bool m_lastActionWasPaste = false;
+    wxDECLARE_EVENT_TABLE();
+
 public:
     wxTextCtrl* inputText;
     wxTextCtrl* outputText;
@@ -43,7 +52,9 @@ public:
         SetSizer(mainSizer);
         Layout();
 
+        inputText->Bind(wxEVT_TEXT_PASTE, &MyFrame::OnInputTextPaste, this);
         inputText->Bind(wxEVT_TEXT, &MyFrame::OnInputTextChanged, this);
+        
 
         debounceTimer = new wxTimer(this, ID_InputDebounceTimer);
         Bind(wxEVT_TIMER, &MyFrame::OnDebounceTimer, this, ID_InputDebounceTimer);
@@ -85,42 +96,73 @@ public:
         }
         else if (nMsg == WM_HOTKEY && wParam == ID_HOTKEY_TRANSLATE_SELECTED)
         {
-            // 1. Получаем потоки (как у вас)
-            DWORD fgThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
-            DWORD myThread = GetCurrentThreadId();
+            //DWORD fgThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
+            //DWORD myThread = GetCurrentThreadId();
 
-            // 2. Подключаемся к чужому потоку (как у вас)
-            AttachThreadInput(myThread, fgThread, TRUE);
-            HWND focused = GetFocus();
-            AttachThreadInput(myThread, fgThread, FALSE);
+            //AttachThreadInput(myThread, fgThread, TRUE);
+            //HWND focused = GetFocus();
 
-            if (focused) {
+            //// Если у этого окна нет выделения — ищем среди потомков
+            //if (focused) {
+            //    LRESULT sel = SendMessage(focused, EM_GETSEL, 0, 0);
+            //    DWORD start = LOWORD(sel);
+            //    DWORD end = HIWORD(sel);
+            //    if (start == end) {
+            //        HWND child = GetFocusedOrSelectedChild(focused);
+            //        if (child)
+            //            focused = child;
+            //    }
+            //}
 
-                // 1. Узнаем длину текста (WM_GETTEXTLENGTH)
-                // SendMessage для кросс-процессной передачи текста
-                int len = (int)SendMessageW(focused, WM_GETTEXTLENGTH, 0, 0);
+            //AttachThreadInput(myThread, fgThread, FALSE);
 
-                // 2. Выделяем буфер
-                std::wstring buf(len + 1, L'\0');
+            //std::wstring selected;
 
-                // 3. Получаем текст (WM_GETTEXT). Система выполнит маршаллинг буфера.
-                SendMessageW(focused, WM_GETTEXT, (WPARAM)len + 1, (LPARAM)&buf[0]);
+            //if (focused) {
 
-                // Получаем границы выделения.
-                // Для EM_GETSEL, начало (start) в LOWORD, конец (end) в HIWORD LRESULT.
-                LRESULT sel = SendMessage(focused, EM_GETSEL, 0, 0);
+            //    // 1. Узнаем длину текста (WM_GETTEXTLENGTH)
+            //    // SendMessage для кросс-процессной передачи текста
+            //    int len = (int)SendMessageW(focused, WM_GETTEXTLENGTH, 0, 0);
 
-                // Извлекаем start и end из LRESULT
-                DWORD start = LOWORD(sel);
-                DWORD end = HIWORD(sel);
+            //    // 2. Выделяем буфер
+            //    std::wstring buf(len + 1, L'\0');
 
-                // Проверяем корректность и извлекаем подстроку
-                if (start < end && end <= buf.size()) {
-                    std::wstring selected = buf.substr(start, end - start);
-                    // ... (Ваша логика с wxWidgets)
-                    inputText->SetValue(selected.c_str());
+            //    // Получаем границы выделения.
+            //    // Для EM_GETSEL, начало (start) в LOWORD, конец (end) в HIWORD LRESULT.
+            //    LRESULT sel = SendMessage(focused, EM_GETSEL, 0, 0);
+
+            //    // Извлекаем start и end из LRESULT
+            //    DWORD start = LOWORD(sel);
+            //    DWORD end = HIWORD(sel);
+
+            //    int charsCopied = (int)SendMessageW(focused, WM_GETTEXT, (WPARAM)len + 1, (LPARAM)&buf[0]);
+
+            //    if (charsCopied > 0) {
+            //        
+            //        // Replace the problematic line with the following:
+            //        end = std::min(static_cast<DWORD>(charsCopied), end);
+            //        // Извлекаем подстроку
+            //        if (start < end && end <= buf.size()) {
+            //            selected = buf.substr(start, end - start);
+            //        }
+            //    }
+            //}
+
+            std::wstring selected;
+            if (wxTheClipboard->Open()) {
+                if (wxTheClipboard->IsSupported(wxDF_TEXT)) {
+                    wxTextDataObject data;
+                    wxTheClipboard->GetData(data);
+
+                    selected = data.GetText();
                 }
+                wxTheClipboard->Close();
             }
+
+            m_lastActionWasPaste = true;
+            //std::wstring text = GetSelectedText();
+            inputText->SetValue(selected.c_str());
+            translate(this, outputText, selected);
             if (!IsShown())
                 Show();
             Raise();
@@ -130,24 +172,49 @@ public:
         return wxFrame::MSWWindowProc(nMsg, wParam, lParam);
     }
 
-    static std::string UrlEncode(const std::string& value) {
-        std::ostringstream escaped;
-        escaped.fill('0');
-        escaped << std::hex;
-        for (char c : value) {
-            if (isalnum((unsigned char)c) || c == '-' || c == '_' || c == '.' || c == '~') {
-                escaped << c;
-            } else {
-                escaped << '%' << std::setw(2) << int((unsigned char)c);
-            }
-        }
-        return escaped.str();
-    }
-
     void OnInputTextChanged(wxCommandEvent& event)
     {
+        OutputDebugStringA("OnInputTextChanged\n");
+        if (m_lastActionWasPaste) {
+            m_lastActionWasPaste = false;
+            return;
+        }
         lastInputText = inputText->GetValue();
-        debounceTimer->Start(1000, true);
+        if (lastInputText.empty()) {
+            outputText->SetValue("");
+            return;
+        }
+        if (!debounceTimer->IsRunning()) {
+            OutputDebugStringA("debounceTimer\n");
+            debounceTimer->Start(2000, true);
+        }        
+        else
+        {
+            OutputDebugStringA("IsRunning\n");
+        }
+    }
+
+    void OnInputTextPaste(wxCommandEvent& event)
+    {
+        OutputDebugStringA("OnInputTextPaste\n");
+		m_lastActionWasPaste = true;
+        if (wxTheClipboard->Open()) {
+            if (wxTheClipboard->IsSupported(wxDF_TEXT)) {
+                wxTextDataObject data;
+                wxTheClipboard->GetData(data);
+
+                lastInputText = data.GetText();
+            }
+            wxTheClipboard->Close();
+        }
+
+        if (lastInputText.empty()) {
+            outputText->SetValue("");
+        }
+        else {
+            translate(this, outputText, lastInputText);
+        }
+        event.Skip();
     }
 
     void OnDebounceTimer(wxTimerEvent& event)
@@ -158,54 +225,13 @@ public:
             return;
         }
 
-        std::string query{ text.ToUTF8() };
-        std::string encoded = UrlEncode(query);
-
-        wxString url;
-        if (DetectLang(query) == Lang::English) {
-            url = wxString::Format(
-                "https://translate.google.com/m?sl=en&tl=ru&hl=ru&q=%s",
-                wxString(encoded)
-            );
+        lastInputText = inputText->GetValue();
+        if (lastInputText.empty()) {
+            outputText->SetValue("");
         }
-        else{
-            url = wxString::Format(
-                "https://translate.google.com/m?sl=ru&tl=en&hl=ru&q=%s",
-                wxString(encoded)
-            );
+        else {
+            translate(this, outputText, lastInputText);
         }
-
-        wxWebRequest req = wxWebSession::GetDefault().CreateRequest(this, url);
-
-        Bind(wxEVT_WEBREQUEST_STATE, [this](wxWebRequestEvent& evt) {
-			if (evt.GetState() == wxWebRequest::State_Completed) {
-				wxString response = evt.GetResponse().AsString();
-
-                // Парсим предпоследний <div> с конца
-				std::string html = std::string(response.ToUTF8());
-				std::string result;
-				size_t end = html.rfind("</div>");
-				if (end != std::string::npos) {
-					// Найти второй с конца </div>
-					size_t prev_end = html.rfind("</div>", end - 1);
-					if (prev_end != std::string::npos) {
-						// Найти начало <div ...> перед prev_end
-						size_t div_start = html.rfind("<div", prev_end);
-						if (div_start != std::string::npos) {
-							size_t content_start = html.find('>', div_start);
-							if (content_start != std::string::npos && content_start + 1 <= prev_end) {
-								result = html.substr(content_start + 1, prev_end - content_start - 1);
-							}
-						}
-					}
-				}
-				outputText->SetValue(wxString::FromUTF8(result));
-			}
-			else if (evt.GetState() == wxWebRequest::State_Failed) {
-                outputText->SetValue("HTTP request error");
-            }
-        });
-        req.Start();
     }
 
     ~MyFrame() override
@@ -216,8 +242,6 @@ public:
         }
     }
 
-private:
-    wxDECLARE_EVENT_TABLE();
 };
 
 wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
