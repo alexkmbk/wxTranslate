@@ -148,8 +148,8 @@ public:
             //    }
             //}
 
-            std::wstring selected;
-            if (wxTheClipboard->Open()) {
+            std::wstring selected = GetSelectedText();
+            /*if (wxTheClipboard->Open()) {
                 if (wxTheClipboard->IsSupported(wxDF_TEXT)) {
                     wxTextDataObject data;
                     wxTheClipboard->GetData(data);
@@ -157,7 +157,7 @@ public:
                     selected = data.GetText();
                 }
                 wxTheClipboard->Close();
-            }
+            }*/
 
             m_lastActionWasPaste = true;
             //std::wstring text = GetSelectedText();
@@ -174,7 +174,6 @@ public:
 
     void OnInputTextChanged(wxCommandEvent& event)
     {
-        OutputDebugStringA("OnInputTextChanged\n");
         if (m_lastActionWasPaste) {
             m_lastActionWasPaste = false;
             return;
@@ -185,18 +184,12 @@ public:
             return;
         }
         if (!debounceTimer->IsRunning()) {
-            OutputDebugStringA("debounceTimer\n");
             debounceTimer->Start(2000, true);
         }        
-        else
-        {
-            OutputDebugStringA("IsRunning\n");
-        }
     }
 
     void OnInputTextPaste(wxCommandEvent& event)
     {
-        OutputDebugStringA("OnInputTextPaste\n");
 		m_lastActionWasPaste = true;
         if (wxTheClipboard->Open()) {
             if (wxTheClipboard->IsSupported(wxDF_TEXT)) {

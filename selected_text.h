@@ -1,2 +1,2 @@
+std::wstring GetSelectedTextViaClipboard();
 std::wstring GetSelectedText();
-HWND GetFocusedOrSelectedChild(HWND hwndParent);
