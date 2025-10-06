@@ -39,15 +39,40 @@ public:
     MyFrame()
         : wxFrame(nullptr, wxID_ANY, "wxTranslate", wxDefaultPosition, wxSize(800, 400))
     {
-        wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
+        // Кнопка копирования
+        wxButton* copyButton = new wxButton(this, wxID_ANY, "Copy");
+
+		wxBoxSizer* mainSizer = new wxBoxSizer(wxHORIZONTAL);
+		// Set larger font for input and output text controls
+		wxFont largeFont{ 14, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL };
+		
+        // Input
+
+        wxBoxSizer* inputSizer = new wxBoxSizer(wxVERTICAL);
+        int spacerHeight = copyButton->GetBestSize().GetHeight() + 5; 
+        inputSizer->AddSpacer(spacerHeight);
 
         inputText = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
-            wxTE_MULTILINE | wxTE_RICH2);
-        mainSizer->Add(inputText, 1, wxEXPAND | wxALL, 5);
+			wxTE_MULTILINE);
+		inputText->SetFont(largeFont);
+        inputSizer->Add(inputText, 1, wxEXPAND | wxALL, 5);
 
+		//mainSizer->Add(inputText, 1, wxEXPAND | wxALL, 5);
+
+        // Создаём вертикальный сайзер для outputText и кнопки
+        wxBoxSizer* outputSizer = new wxBoxSizer(wxVERTICAL);
+
+        outputSizer->Add(copyButton, 0, wxALIGN_RIGHT | wxRIGHT | wxTOP, 5);
+
+        // Поле вывода
         outputText = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
-            wxTE_MULTILINE | wxTE_RICH2);
-        mainSizer->Add(outputText, 1, wxEXPAND | wxALL, 5);
+            wxTE_MULTILINE);
+        outputText->SetFont(largeFont);
+        outputSizer->Add(outputText, 1, wxEXPAND | wxALL, 5);
+
+        
+        mainSizer->Add(inputSizer, 1, wxEXPAND);
+        mainSizer->Add(outputSizer, 1, wxEXPAND);
 
         SetSizer(mainSizer);
         Layout();
@@ -55,6 +80,14 @@ public:
         inputText->Bind(wxEVT_TEXT_PASTE, &MyFrame::OnInputTextPaste, this);
         inputText->Bind(wxEVT_TEXT, &MyFrame::OnInputTextChanged, this);
         
+        // Привязываем обработчик к кнопке копирования
+        copyButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            if (wxTheClipboard->Open()) {
+                wxTheClipboard->SetData(new wxTextDataObject(outputText->GetValue()));
+                wxTheClipboard->Close();
+            }
+            });
+
         Bind(wxEVT_CHAR_HOOK, &MyFrame::OnCharHook, this);
 
         debounceTimer = new wxTimer(this, ID_InputDebounceTimer);
@@ -193,6 +226,9 @@ public:
     bool OnInit() override
     {
         frame = new MyFrame();
+
+        frame->SetBackgroundColour(wxColour(240, 240, 240));
+
         // frame->Show(); // Не показываем окно при запуске, оно сразу в трее
 
         // Регистрируем глобальный хоткей Ctrl+alt+T
