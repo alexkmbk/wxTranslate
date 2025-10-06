@@ -55,6 +55,7 @@ public:
         inputText->Bind(wxEVT_TEXT_PASTE, &MyFrame::OnInputTextPaste, this);
         inputText->Bind(wxEVT_TEXT, &MyFrame::OnInputTextChanged, this);
         
+        Bind(wxEVT_CHAR_HOOK, &MyFrame::OnCharHook, this);
 
         debounceTimer = new wxTimer(this, ID_InputDebounceTimer);
         Bind(wxEVT_TIMER, &MyFrame::OnDebounceTimer, this, ID_InputDebounceTimer);
@@ -77,94 +78,28 @@ public:
         event.Veto(); // Не уничтожаем окно!
     }
 
-    // Обработка двойного клика по иконке в трее — показываем окно
-    void OnTaskBarLeftDClick(wxTaskBarIconEvent&)
-    {
-        Show();
-        Raise();
-    }
-
     // Обработка хоткея
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override
     {
         if (nMsg == WM_HOTKEY && wParam == ID_HOTKEY_SHOW)
         {
-            if (!IsShown())
+            if (!IsShown() || IsIconized())
                 Show();
+            if (IsIconized())
+                Iconize(false);
             Raise();
             return 0;
         }
         else if (nMsg == WM_HOTKEY && wParam == ID_HOTKEY_TRANSLATE_SELECTED)
-        {
-            //DWORD fgThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
-            //DWORD myThread = GetCurrentThreadId();
-
-            //AttachThreadInput(myThread, fgThread, TRUE);
-            //HWND focused = GetFocus();
-
-            //// Если у этого окна нет выделения — ищем среди потомков
-            //if (focused) {
-            //    LRESULT sel = SendMessage(focused, EM_GETSEL, 0, 0);
-            //    DWORD start = LOWORD(sel);
-            //    DWORD end = HIWORD(sel);
-            //    if (start == end) {
-            //        HWND child = GetFocusedOrSelectedChild(focused);
-            //        if (child)
-            //            focused = child;
-            //    }
-            //}
-
-            //AttachThreadInput(myThread, fgThread, FALSE);
-
-            //std::wstring selected;
-
-            //if (focused) {
-
-            //    // 1. Узнаем длину текста (WM_GETTEXTLENGTH)
-            //    // SendMessage для кросс-процессной передачи текста
-            //    int len = (int)SendMessageW(focused, WM_GETTEXTLENGTH, 0, 0);
-
-            //    // 2. Выделяем буфер
-            //    std::wstring buf(len + 1, L'\0');
-
-            //    // Получаем границы выделения.
-            //    // Для EM_GETSEL, начало (start) в LOWORD, конец (end) в HIWORD LRESULT.
-            //    LRESULT sel = SendMessage(focused, EM_GETSEL, 0, 0);
-
-            //    // Извлекаем start и end из LRESULT
-            //    DWORD start = LOWORD(sel);
-            //    DWORD end = HIWORD(sel);
-
-            //    int charsCopied = (int)SendMessageW(focused, WM_GETTEXT, (WPARAM)len + 1, (LPARAM)&buf[0]);
-
-            //    if (charsCopied > 0) {
-            //        
-            //        // Replace the problematic line with the following:
-            //        end = std::min(static_cast<DWORD>(charsCopied), end);
-            //        // Извлекаем подстроку
-            //        if (start < end && end <= buf.size()) {
-            //            selected = buf.substr(start, end - start);
-            //        }
-            //    }
-            //}
-
+        {            
             std::wstring selected = GetSelectedText();
-            /*if (wxTheClipboard->Open()) {
-                if (wxTheClipboard->IsSupported(wxDF_TEXT)) {
-                    wxTextDataObject data;
-                    wxTheClipboard->GetData(data);
-
-                    selected = data.GetText();
-                }
-                wxTheClipboard->Close();
-            }*/
-
             m_lastActionWasPaste = true;
-            //std::wstring text = GetSelectedText();
             inputText->SetValue(selected.c_str());
             translate(this, outputText, selected);
-            if (!IsShown())
+            if (!IsShown() || IsIconized())
                 Show();
+            if (IsIconized())
+                Iconize(false);
             Raise();
 
             return 0;
@@ -227,6 +162,15 @@ public:
         }
     }
 
+    void OnCharHook(wxKeyEvent& event)
+    {
+        if (event.GetKeyCode() == WXK_ESCAPE) {
+            Hide();
+            return;
+        }
+        event.Skip();
+    }
+
     ~MyFrame() override
     {
         if (trayIcon) {
@@ -238,8 +182,7 @@ public:
 };
 
 wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
-    EVT_CLOSE(MyFrame::OnClose)
-    EVT_TASKBAR_LEFT_DCLICK(MyFrame::OnTaskBarLeftDClick)
+    EVT_CLOSE(MyFrame::OnClose)    
 wxEND_EVENT_TABLE()
 
 class MyApp : public wxApp

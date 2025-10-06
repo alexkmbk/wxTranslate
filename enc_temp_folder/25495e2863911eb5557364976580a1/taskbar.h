@@ -14,9 +14,9 @@ public:
 
     wxMenu* CreatePopupMenu() override {
         wxMenu* menu = new wxMenu;
-        menu->Append(ID_MENU_RESTORE, "Show window");
+        menu->Append(ID_MENU_RESTORE, "Показать окно");
         menu->AppendSeparator();
-        menu->Append(ID_MENU_EXIT, "Exit");
+        menu->Append(ID_MENU_EXIT, "Выход");
         return menu;
     }
 

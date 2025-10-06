@@ -36,7 +36,9 @@ std::wstring GetSelectedText()
         return L"";
     HANDLE oldTextData = CopyClipboardData(CF_UNICODETEXT);
     EmptyClipboard();
-    CloseClipboard();
+    CloseClipboard();    
+
+    int count = 0;
 
     // Ждем, пока пользователь отпустит все модификаторы
     while (GetAsyncKeyState(VK_LWIN) & 0x8000 ||
@@ -45,6 +47,7 @@ std::wstring GetSelectedText()
         GetAsyncKeyState(VK_MENU) & 0x8000 ||
         GetAsyncKeyState(VK_CONTROL) & 0x8000)
     {
+        count++;
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
@@ -71,6 +74,7 @@ std::wstring GetSelectedText()
     std::wstring newText;
     auto start = std::chrono::steady_clock::now();
 
+
     for (;;)
     {
         if (OpenClipboard(nullptr))
@@ -96,6 +100,10 @@ std::wstring GetSelectedText()
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
+
+    char buffer[256];
+    sprintf(buffer, "count = %d\n", count);
+    OutputDebugStringA(buffer);
 
     // Восстанавливаем старый буфер обмена
     if (OpenClipboard(nullptr))
