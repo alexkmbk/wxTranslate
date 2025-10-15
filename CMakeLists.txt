@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 project(wxTranslate)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+
 
 # Пути к vcpkg
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
@@ -11,6 +12,6 @@ endif()
 
 find_package(wxWidgets CONFIG REQUIRED)
 
-add_executable(wxTranslate WIN32 main.cpp "translate.cpp" taskbar.cpp "selected_text.cpp" "selected_text.h")
+add_executable(wxTranslate WIN32 main.cpp "translate.cpp" taskbar.cpp "selected_text.cpp" "selected_text.h"  "lang_detect.h" utils.cpp "settings.cpp")
 
 target_link_libraries(wxTranslate PRIVATE wx::core wx::base wx::net wx::adv)

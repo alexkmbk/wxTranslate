@@ -6,7 +6,11 @@
 #include <string>
 #include <cctype>
 
+#include "lang_detect.h"
 #include "translate.h"
+#include "settings.h"
+
+SimpleLangDetector langDetector;
 
 static std::string UrlEncode(const std::string& value) {
     std::ostringstream escaped;
@@ -35,19 +39,22 @@ void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text) {
     std::string query{ text.ToUTF8() };
     std::string encoded = UrlEncode(query);
 
-    wxString url;
-    if (DetectLang(query) == Lang::English) {
-        url = wxString::Format(
-            "https://translate.google.com/m?sl=en&tl=ru&hl=ru&q=%s",
-            wxString(encoded)
-        );
+    wxString sl = langDetector.Detect(query);
+    wxString tl = "en";
+
+	if (sl == "unknown"){
+        sl = "ru";
     }
-    else {
-        url = wxString::Format(
-            "https://translate.google.com/m?sl=ru&tl=en&hl=ru&q=%s",
-            wxString(encoded)
-        );
-    }
+
+    //if (DetectLang(query) == Lang::English) {
+    //    sl = "en";
+    //    tl = "ru";
+    //}
+
+    wxString url = wxString::Format(
+        "https://translate.google.com/m?sl=%s&tl=%s&hl=%s&q=%s",
+        sl, tl, tl, encoded
+    );
 
     wxWebRequest req = wxWebSession::GetDefault().CreateRequest(frame, url);
 

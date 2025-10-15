@@ -13,8 +13,14 @@
 #include "translate.h"
 #include "taskbar.h"
 #include "selected_text.h"
+#include "utils.h"
+#include "settings.h"
 
 #include <debugapi.h>
+
+using namespace std;
+
+//fs::path currentDir = std::filesystem::current_path();
 
 enum {
     ID_WebRequest = wxID_HIGHEST + 1,
@@ -152,7 +158,7 @@ public:
             return;
         }
         if (!debounceTimer->IsRunning()) {
-            debounceTimer->Start(2000, true);
+            debounceTimer->Start(1000, true);
         }        
     }
 
@@ -225,6 +231,8 @@ public:
 
     bool OnInit() override
     {
+        settingsFile = L"settings.ini";
+        readSettings();
         frame = new MyFrame();
 
         frame->SetBackgroundColour(wxColour(240, 240, 240));
