@@ -51,6 +51,8 @@ void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text) {
     //    tl = "ru";
     //}
 
+    // https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=текст
+
     wxString url = wxString::Format(
         "https://translate.google.com/m?sl=%s&tl=%s&hl=%s&q=%s",
         sl, tl, tl, encoded
