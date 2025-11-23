@@ -106,9 +106,10 @@ void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text) {
                 return;
             }
 
-            std::string translated = tokens[0];               
-            std::string original = tokens[1];                
-            std::string source_language = tokens[2];                
+            std::string translated = tokens[0];                // "text"
+            std::string original = tokens[1];                // "текст"
+            std::string source_language = tokens[2];                // "ru"
+            //std::string target_language = tokens[tokens.size() - 1];  // последняя "ru"
 
             textCtrl->SetValue(wxString::FromUTF8(translated));
         }

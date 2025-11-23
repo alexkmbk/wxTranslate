@@ -15,6 +15,7 @@
 #include "selected_text.h"
 #include "utils.h"
 #include "settings.h"
+#include "lang_panel.h"
 
 #include <debugapi.h>
 
@@ -54,14 +55,32 @@ public:
 		
         // Input
 
-        wxBoxSizer* inputSizer = new wxBoxSizer(wxVERTICAL);
-        int spacerHeight = copyButton->GetBestSize().GetHeight() + 5; 
-        inputSizer->AddSpacer(spacerHeight);
+        // Left lang panel
 
+        auto* leftPanelSizer = new wxBoxSizer(wxHORIZONTAL);
+
+        auto* leftPanel = new LangPanel(this, g_Settings.favLangs, [this](const std::wstring& lang) {
+            if (lang != g_Settings.currentLangOut) {
+                g_Settings.setInCurrentLang(lang);
+				translate(this, outputText, inputText->GetValue().ToStdWstring());
+			}
+            }, g_Settings.currentLangIn);
+
+        leftPanelSizer->Add(leftPanel, 0, wxEXPAND | wxALL, 0);
+
+
+        wxBoxSizer* inputSizer = new wxBoxSizer(wxVERTICAL);
+        if (g_Settings.favLangs.size() > 0) {
+            inputSizer->Add(leftPanelSizer, 0, wxEXPAND | wxTOP, 5);
+		}
+        else {            
+            int spacerHeight = copyButton->GetBestSize().GetHeight() + 5;
+            inputSizer->AddSpacer(spacerHeight);
+        }
         inputText = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
 			wxTE_MULTILINE);
 		inputText->SetFont(largeFont);
-        inputSizer->Add(inputText, 1, wxEXPAND | wxALL, 5);
+        inputSizer->Add(inputText, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);    
 
 		//mainSizer->Add(inputText, 1, wxEXPAND | wxALL, 5);
 
@@ -231,8 +250,7 @@ public:
 
     bool OnInit() override
     {
-        settingsFile = L"settings.ini";
-        readSettings();
+		g_Settings.load();
         frame = new MyFrame();
 
         frame->SetBackgroundColour(wxColour(240, 240, 240));
