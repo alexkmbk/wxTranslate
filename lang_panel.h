@@ -17,7 +17,7 @@ public:
     LangPanel(wxWindow* parent,
         const std::map<std::wstring, std::wstring>& favLangs,
         LangCallback onLangClick, const std::wstring& initiallyPressedLang);
-
+    void UpdateButtonLabel(const wxString& langCode, const wxString& newLabel);
 private:
     std::vector<std::wstring> langs_; // stores language codes
     std::vector<wxToggleButton*> buttons_;

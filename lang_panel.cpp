@@ -69,3 +69,19 @@ void LangPanel::OnButtonClicked(wxCommandEvent& event)
     if (callback_)
         callback_(langs_[index]);
 }
+
+void LangPanel::UpdateButtonLabel(const wxString& langCode, const wxString& newLabel)
+{
+    auto it = std::find_if(langs_.begin(), langs_.end(),
+        [&](const std::wstring& code) {
+            return wxString::FromUTF8(std::string(code.begin(), code.end())) == langCode;
+        });
+    if (it == langs_.end())
+        return;
+
+    size_t index = std::distance(langs_.begin(), it);
+    if (index >= buttons_.size())
+        return;
+
+    buttons_[index]->SetLabel(newLabel);
+}

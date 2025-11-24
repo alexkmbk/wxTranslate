@@ -39,6 +39,7 @@ private:
 public:
     wxTextCtrl* inputText;
     wxTextCtrl* outputText;
+    LangPanel* leftPanel;
     wxTimer* debounceTimer;
     wxString lastInputText;
     MyTaskBarIcon* trayIcon = nullptr; // Now the compiler knows about MyTaskBarIcon
@@ -66,10 +67,10 @@ public:
             favLangsMap[langCode] = langCode;
         }
         
-        auto* leftPanel = new LangPanel(this, favLangsMap, [this](const std::wstring& lang) {
+        leftPanel = new LangPanel(this, favLangsMap, [this](const std::wstring& lang) {
             if (lang != g_Settings.currentLangOut) {
                 g_Settings.setInCurrentLang(lang);
-				translate(this, outputText, inputText->GetValue().ToStdWstring());
+				translate(this, outputText, inputText->GetValue().ToStdWstring(), leftPanel);
 			}
             }, g_Settings.currentLangIn);
 
@@ -90,8 +91,8 @@ public:
 
         auto* rightPanel = new LangPanel(this, favLangsMap, [this](const std::wstring& lang) {
             if (lang != g_Settings.currentLangOut) {
-                g_Settings.setInCurrentLang(lang);
-                translate(this, outputText, inputText->GetValue().ToStdWstring());
+                g_Settings.setOutCurrentLang(lang);
+                translate(this, outputText, inputText->GetValue().ToStdWstring(), leftPanel);
             }
             }, g_Settings.currentLangOut);
         auto* rightPanelSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -122,6 +123,7 @@ public:
                 wxTheClipboard->SetData(new wxTextDataObject(outputText->GetValue()));
                 wxTheClipboard->Close();
             }
+            Hide(); // Скрыть окно после копирования
             });
 
         Bind(wxEVT_CHAR_HOOK, &MyFrame::OnCharHook, this);
@@ -157,6 +159,7 @@ public:
             if (IsIconized())
                 Iconize(false);
             Raise();
+            inputText->SetFocus();
             return 0;
         }
         else if (nMsg == WM_HOTKEY && wParam == ID_HOTKEY_TRANSLATE_SELECTED)
@@ -164,12 +167,13 @@ public:
             std::wstring selected = GetSelectedText();
             m_lastActionWasPaste = true;
             inputText->SetValue(selected.c_str());
-            translate(this, outputText, selected);
+            translate(this, outputText, selected, leftPanel);
             if (!IsShown() || IsIconized())
                 Show();
             if (IsIconized())
                 Iconize(false);
             Raise();
+            inputText->SetFocus();
 
             return 0;
 		}
@@ -209,7 +213,7 @@ public:
             outputText->SetValue("");
         }
         else {
-            translate(this, outputText, lastInputText);
+            translate(this, outputText, lastInputText, leftPanel);
         }
         event.Skip();
     }
@@ -227,7 +231,7 @@ public:
             outputText->SetValue("");
         }
         else {
-            translate(this, outputText, lastInputText);
+            translate(this, outputText, lastInputText, leftPanel);
         }
     }
 
@@ -290,6 +294,7 @@ public:
             UnregisterHotKey(hwnd, ID_HOTKEY_SHOW);
             UnregisterHotKey(hwnd, ID_HOTKEY_TRANSLATE_SELECTED);
         }
+        g_Settings.save();
         return 0;
     }
 };

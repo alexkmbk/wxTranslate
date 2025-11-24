@@ -8,6 +8,7 @@
 
 #include "translate.h"
 #include "settings.h"
+#include "lang_panel.h"
 
 static std::string UrlEncode(const std::string& value) {
     std::ostringstream escaped;
@@ -24,7 +25,7 @@ static std::string UrlEncode(const std::string& value) {
     return escaped.str();
 }
 
-void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text) {
+void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text, LangPanel* langPanel) {
 
     OutputDebugStringA("translate\n");
 
@@ -62,7 +63,7 @@ void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text) {
 
     wxWebRequest req = wxWebSession::GetDefault().CreateRequest(frame, url);
 
-    frame->Bind(wxEVT_WEBREQUEST_STATE, [frame, textCtrl](wxWebRequestEvent& evt) {
+    frame->Bind(wxEVT_WEBREQUEST_STATE, [frame, textCtrl, langPanel](wxWebRequestEvent& evt) {
         if (evt.GetState() == wxWebRequest::State_Completed) {
             wxString response = evt.GetResponse().AsString();
 
@@ -109,6 +110,14 @@ void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text) {
             std::string translated = tokens[0];               
             std::string original = tokens[1];                
             std::string source_language = tokens[2];                
+
+            // Update left panel if input language is auto
+            if (g_Settings.currentLangIn == L"auto") {
+                wxString autoLabel = wxString::Format("auto (%s)", wxString::FromUTF8(source_language));
+
+                langPanel->UpdateButtonLabel("auto", autoLabel);
+            }
+
 
             textCtrl->SetValue(wxString::FromUTF8(translated));
         }
