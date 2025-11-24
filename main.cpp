@@ -59,7 +59,14 @@ public:
 
         auto* leftPanelSizer = new wxBoxSizer(wxHORIZONTAL);
 
-        auto* leftPanel = new LangPanel(this, g_Settings.favLangs, [this](const std::wstring& lang) {
+        // Convert favLangs to std::map<std::wstring, std::wstring> if needed
+        std::map<std::wstring, std::wstring> favLangsMap{ {L"auto", L"Auto"} };
+        
+        for (const auto& langCode : g_Settings.favLangs) {
+            favLangsMap[langCode] = langCode;
+        }
+        
+        auto* leftPanel = new LangPanel(this, favLangsMap, [this](const std::wstring& lang) {
             if (lang != g_Settings.currentLangOut) {
                 g_Settings.setInCurrentLang(lang);
 				translate(this, outputText, inputText->GetValue().ToStdWstring());
@@ -70,13 +77,7 @@ public:
 
 
         wxBoxSizer* inputSizer = new wxBoxSizer(wxVERTICAL);
-        if (g_Settings.favLangs.size() > 0) {
-            inputSizer->Add(leftPanelSizer, 0, wxEXPAND | wxTOP, 5);
-		}
-        else {            
-            int spacerHeight = copyButton->GetBestSize().GetHeight() + 5;
-            inputSizer->AddSpacer(spacerHeight);
-        }
+        inputSizer->Add(leftPanelSizer, 0, wxEXPAND | wxALL, 5);
         inputText = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
 			wxTE_MULTILINE);
 		inputText->SetFont(largeFont);
@@ -87,13 +88,23 @@ public:
         // Создаём вертикальный сайзер для outputText и кнопки
         wxBoxSizer* outputSizer = new wxBoxSizer(wxVERTICAL);
 
-        outputSizer->Add(copyButton, 0, wxALIGN_RIGHT | wxRIGHT | wxTOP, 5);
+        auto* rightPanel = new LangPanel(this, favLangsMap, [this](const std::wstring& lang) {
+            if (lang != g_Settings.currentLangOut) {
+                g_Settings.setInCurrentLang(lang);
+                translate(this, outputText, inputText->GetValue().ToStdWstring());
+            }
+            }, g_Settings.currentLangOut);
+        auto* rightPanelSizer = new wxBoxSizer(wxHORIZONTAL);
+        rightPanelSizer->Add(rightPanel, 0, wxEXPAND | wxRIGHT, 0);
+        rightPanelSizer->AddStretchSpacer();
+        rightPanelSizer->Add(copyButton, 0);
+        outputSizer->Add(rightPanelSizer, 0, wxEXPAND | wxALL, 5);
 
         // Поле вывода
         outputText = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
             wxTE_MULTILINE);
         outputText->SetFont(largeFont);
-        outputSizer->Add(outputText, 1, wxEXPAND | wxALL, 5);
+        outputSizer->Add(outputText, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 5);
 
         
         mainSizer->Add(inputSizer, 1, wxEXPAND);
