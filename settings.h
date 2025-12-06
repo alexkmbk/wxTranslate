@@ -6,17 +6,17 @@
 struct Settings
 {
     static const std::filesystem::path settingsFilePath;
-    std::vector<std::wstring> favLangs;
-    std::wstring sourceLang;
-    std::wstring currentLangIn;
-    std::wstring currentLangOut;
+    std::vector<std::string> favLangs;
+    std::string sourceLang;
+    std::string currentLangIn;
+    std::string currentLangOut;
 
     void load();
     void save() const;
-    void setInCurrentLang(const std::wstring& lang) {
+    void setInCurrentLang(const std::string& lang) {
         currentLangIn = lang;
 	}
-    void setOutCurrentLang(const std::wstring& lang) {
+    void setOutCurrentLang(const std::string& lang) {
         currentLangOut = lang;
 	}
 };

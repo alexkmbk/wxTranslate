@@ -8,5 +8,5 @@ enum class Lang {
     Unknown
 };
 
-Lang DetectLang(const std::string& text);
-void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text, LangPanel* langPanel);
+//Lang DetectLang(const std::string& text);
+void translate(wxFrame* frame, wxString text, std::function<void(const std::string& translated, const std::string& sourceLanguage, const std::string& error)> callback);

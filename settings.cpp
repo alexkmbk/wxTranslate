@@ -18,12 +18,12 @@ void Settings::load() {
     if (!fs::exists(settingsFilePath)) {
         return;
     }
-    CSimpleIniW ini;
+    CSimpleIniA ini;
     ini.SetUnicode();
     ini.LoadFile(settingsFilePath.c_str());
-    favLangs = split(ini.GetValue(L"Translate", L"FavoriteLanguages", L""), L',');
-    currentLangIn = ini.GetValue(L"Translate", L"CurrentLanguageIn", L"");
-    currentLangOut = ini.GetValue(L"Translate", L"CurrentLanguageOut", L"");
+    favLangs = split(ini.GetValue("Translate", "FavoriteLanguages", ""), ',');
+    currentLangIn = ini.GetValue("Translate", "CurrentLanguageIn", "");
+    currentLangOut = ini.GetValue("Translate", "CurrentLanguageOut", "");
     if (currentLangIn.empty() && !favLangs.empty()) {
         currentLangIn = favLangs[0];
 	}
@@ -33,18 +33,18 @@ void Settings::load() {
 }
 
 void Settings::save() const {
-    CSimpleIniW ini;
+    CSimpleIniA ini;
     ini.SetUnicode();
-    ini.SetValue(L"Translate", L"FavoriteLanguages", L"");
-    std::wstring favLangsStr;
+    ini.SetValue("Translate", "FavoriteLanguages", "");
+    std::string favLangsStr;
     for (const auto& lang : favLangs) {
         if (!favLangsStr.empty()) {
-            favLangsStr += L",";
+            favLangsStr += ",";
         }
         favLangsStr += lang;
     }
-    ini.SetValue(L"Translate", L"FavoriteLanguages", favLangsStr.c_str());
-    ini.SetValue(L"Translate", L"CurrentLanguageIn", currentLangIn.c_str());
-    ini.SetValue(L"Translate", L"CurrentLanguageOut", currentLangOut.c_str());
+    ini.SetValue("Translate", "FavoriteLanguages", favLangsStr.c_str());
+    ini.SetValue("Translate", "CurrentLanguageIn", currentLangIn.c_str());
+    ini.SetValue("Translate", "CurrentLanguageOut", currentLangOut.c_str());
     ini.SaveFile(settingsFilePath.c_str());
 }

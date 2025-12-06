@@ -9,4 +9,4 @@
 #include <filesystem>
 using namespace std;
 
-std::vector<std::wstring> split(const std::wstring &s, wchar_t delim);
+std::vector<std::string> split(const std::string &s, char delim);

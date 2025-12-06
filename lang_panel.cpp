@@ -5,9 +5,9 @@ EVT_TOGGLEBUTTON(wxID_ANY, LangPanel::OnButtonClicked)
 wxEND_EVENT_TABLE()
 
 LangPanel::LangPanel(wxWindow* parent,
-    const std::map<std::wstring, std::wstring>& favLangs,
+    const std::map<std::string, std::string>& favLangs,
     LangCallback onLangClick,
-    const std::wstring& initiallyPressedLang)
+    const std::string& initiallyPressedLang)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
     , callback_(onLangClick)
     , pressedIndex_(-1)
@@ -49,6 +49,8 @@ LangPanel::LangPanel(wxWindow* parent,
     // Fit(); // optional
 }
 
+
+
 void LangPanel::OnButtonClicked(wxCommandEvent& event)
 {
     int id = event.GetId();
@@ -73,7 +75,7 @@ void LangPanel::OnButtonClicked(wxCommandEvent& event)
 void LangPanel::UpdateButtonLabel(const wxString& langCode, const wxString& newLabel)
 {
     auto it = std::find_if(langs_.begin(), langs_.end(),
-        [&](const std::wstring& code) {
+        [&](const std::string& code) {
             return wxString::FromUTF8(std::string(code.begin(), code.end())) == langCode;
         });
     if (it == langs_.end())
@@ -84,4 +86,24 @@ void LangPanel::UpdateButtonLabel(const wxString& langCode, const wxString& newL
         return;
 
     buttons_[index]->SetLabel(newLabel);
+}
+
+void LangPanel::PressButtonByLangCode(const std::string& langCode)
+{
+    auto it = std::find(langs_.begin(), langs_.end(), langCode);
+    if (it == langs_.end())
+        return;
+
+    size_t index = std::distance(langs_.begin(), it);
+    if (index >= buttons_.size())
+        return;
+
+    // Unpress previous button if any
+    if (pressedIndex_ != -1 && pressedIndex_ != index && pressedIndex_ < buttons_.size()) {
+        buttons_[pressedIndex_]->SetValue(false);
+    }
+
+    // Press current button
+    buttons_[index]->SetValue(true);
+    pressedIndex_ = static_cast<int>(index);
 }

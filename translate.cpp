@@ -10,6 +10,11 @@
 #include "settings.h"
 #include "lang_panel.h"
 
+
+bool is_lang_code(const std::string& s) {
+    return s.size() == 2 && std::isalpha(s[0]) && std::isalpha(s[1]);
+}
+
 static std::string UrlEncode(const std::string& value) {
     std::ostringstream escaped;
     escaped.fill('0');
@@ -25,12 +30,13 @@ static std::string UrlEncode(const std::string& value) {
     return escaped.str();
 }
 
-void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text, LangPanel* langPanel) {
+void translate(wxFrame* frame, wxString text, std::function<void(const std::string& translated, const std::string& sourceLanguage, const std::string& error)> callback) {
 
     OutputDebugStringA("translate\n");
 
     if (text.IsEmpty()) {
-        textCtrl->SetValue("");
+        //textCtrl->SetValue("");
+		callback("", "", "");
         return;
 	}
 
@@ -49,7 +55,7 @@ void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text, LangPanel* l
     //    tl = "ru";
 	//}
 
-	// https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=текст
+	// https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&dj=1&q=текст
 
 	wxString url = wxString::Format(
 		"https://translate.googleapis.com/translate_a/single?client=gtx&sl=%s&tl=%s&dt=t&q=%s",
@@ -63,7 +69,7 @@ void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text, LangPanel* l
 
     wxWebRequest req = wxWebSession::GetDefault().CreateRequest(frame, url);
 
-    frame->Bind(wxEVT_WEBREQUEST_STATE, [frame, textCtrl, langPanel](wxWebRequestEvent& evt) {
+    frame->Bind(wxEVT_WEBREQUEST_STATE, [callback](wxWebRequestEvent& evt) {
         if (evt.GetState() == wxWebRequest::State_Completed) {
             wxString response = evt.GetResponse().AsString();
 
@@ -91,6 +97,17 @@ void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text, LangPanel* l
             std::vector<std::string> tokens;
             size_t pos = 0;
 
+            //while (true) {
+            //    size_t start = json.find('"', pos);
+            //    if (start == std::string::npos) break;
+
+            //    size_t end = json.find('"', start + 1);
+            //    if (end == std::string::npos) break;
+
+            //    tokens.push_back(json.substr(start + 1, end - start - 1));
+            //    pos = end + 1;
+            //}
+
             while (true) {
                 size_t start = json.find('"', pos);
                 if (start == std::string::npos) break;
@@ -102,28 +119,41 @@ void translate(wxFrame* frame, wxTextCtrl* textCtrl, wxString text, LangPanel* l
                 pos = end + 1;
             }
 
-            if (tokens.size() < 3) {
-                textCtrl->SetValue(wxString("parsing result error"));
+            if (tokens.size() < 2) {
+                callback("", "", "Parse error: no data\n");
                 return;
             }
 
-            std::string translated = tokens[0];               
-            std::string original = tokens[1];                
-            std::string source_language = tokens[2];                
+            // Первые два всегда перевод и оригинал
+            std::string translated = tokens[0];
+            std::string original = tokens[1];
 
-            // Update left panel if input language is auto
-            if (g_Settings.currentLangIn == L"auto") {
-                wxString autoLabel = wxString::Format("auto (%s)", wxString::FromUTF8(source_language));
-
-                langPanel->UpdateButtonLabel("auto", autoLabel);
+            // Первый ISO-язык (source)
+            std::string source_lang;
+            for (const auto& t : tokens) {
+                if (is_lang_code(t)) {
+                    source_lang = t;
+                    break;
+                }
             }
 
+            if (tokens.size() < 3) {
+                //textCtrl->SetValue(wxString("parsing result error"));
+                callback("", "", "parsing result error");
+                return;
+            }
 
-            textCtrl->SetValue(wxString::FromUTF8(translated));
+            //std::string translated = tokens[0];
+            //std::string original = tokens[1];
+            //std::string source_language = tokens[2];
+
+            //textCtrl->SetValue(wxString::FromUTF8(translated));
+            callback(translated, source_lang, "");
         }
         else if (evt.GetState() == wxWebRequest::State_Failed) {
-            textCtrl->SetValue(wxString("HTTP request error"));
+            //textCtrl->SetValue(wxString("HTTP request error"));
+            callback("", "", "HTTP request error");
         }
-        });
+    });
     req.Start();
 }

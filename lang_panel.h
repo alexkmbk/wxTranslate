@@ -12,14 +12,16 @@
 class LangPanel : public wxPanel
 {
 public:
-    using LangCallback = std::function<void(const std::wstring&)>;
+    using LangCallback = std::function<void(const std::string&)>;
 
     LangPanel(wxWindow* parent,
-        const std::map<std::wstring, std::wstring>& favLangs,
-        LangCallback onLangClick, const std::wstring& initiallyPressedLang);
+        const std::map<std::string, std::string>& favLangs,
+        LangCallback onLangClick, const std::string& initiallyPressedLang);
     void UpdateButtonLabel(const wxString& langCode, const wxString& newLabel);
+    void PressButtonByLangCode(const std::string& langCode);
+
 private:
-    std::vector<std::wstring> langs_; // stores language codes
+    std::vector<std::string> langs_; // stores language codes
     std::vector<wxToggleButton*> buttons_;
     LangCallback callback_;
     int pressedIndex_;

@@ -40,9 +40,45 @@ public:
     wxTextCtrl* inputText;
     wxTextCtrl* outputText;
     LangPanel* leftPanel;
+    LangPanel* rightPanel;
     wxTimer* debounceTimer;
     wxString lastInputText;
     MyTaskBarIcon* trayIcon = nullptr; // Now the compiler knows about MyTaskBarIcon
+
+    void afterTranslateCallback(const std::string& translated, const std::string& sourceLanguage, const std::string& error)
+    {
+        if (!error.empty()) {
+            wxMessageBox(L"Ошибка перевода: " + wxString(error), L"Ошибка", wxOK | wxICON_ERROR);
+            return;
+        }
+
+		// Update left panel if input language is auto
+		if (g_Settings.currentLangIn == "auto") {
+			if (sourceLanguage.empty()) {
+				leftPanel->UpdateButtonLabel("auto", "Auto (unknown)");
+			}
+			else
+				leftPanel->UpdateButtonLabel("auto", wxString::Format("Auto (%s)", wxString::FromUTF8(sourceLanguage)));
+		}
+
+        if (sourceLanguage == g_Settings.currentLangOut) {
+          for (auto& langPair : g_Settings.favLangs) {
+              if (langPair == sourceLanguage) {
+                  continue;
+              }
+              g_Settings.setOutCurrentLang(langPair);
+			  rightPanel->PressButtonByLangCode(langPair);
+              translate(this, inputText->GetValue(), [this](const std::string& t,
+                  const std::string& sl,
+                  const std::string& err)
+                  {
+                      afterTranslateCallback(t, sl, err);
+                  });
+              break;
+		  }
+		}
+        outputText->SetValue(wxString::FromUTF8(translated.c_str()));
+    }
 
     MyFrame()
         : wxFrame(nullptr, wxID_ANY, "wxTranslate", wxDefaultPosition, wxSize(800, 400))
@@ -61,16 +97,21 @@ public:
         auto* leftPanelSizer = new wxBoxSizer(wxHORIZONTAL);
 
         // Convert favLangs to std::map<std::wstring, std::wstring> if needed
-        std::map<std::wstring, std::wstring> favLangsMap{ {L"auto", L"Auto"} };
+        std::map<std::string, std::string> favLangsMap{ {"auto", "Auto"} };
         
         for (const auto& langCode : g_Settings.favLangs) {
             favLangsMap[langCode] = langCode;
         }
         
-        leftPanel = new LangPanel(this, favLangsMap, [this](const std::wstring& lang) {
+        leftPanel = new LangPanel(this, favLangsMap, [this](const std::string& lang) {
             if (lang != g_Settings.currentLangOut) {
                 g_Settings.setInCurrentLang(lang);
-				translate(this, outputText, inputText->GetValue().ToStdWstring(), leftPanel);
+                translate(this, inputText->GetValue(), [this](const std::string& t,
+                    const std::string& sl,
+                    const std::string& err)
+                    {
+                        afterTranslateCallback(t, sl, err);
+                    });
 			}
             }, g_Settings.currentLangIn);
 
@@ -89,10 +130,17 @@ public:
         // Создаём вертикальный сайзер для outputText и кнопки
         wxBoxSizer* outputSizer = new wxBoxSizer(wxVERTICAL);
 
-        auto* rightPanel = new LangPanel(this, favLangsMap, [this](const std::wstring& lang) {
+        favLangsMap.erase("auto");
+
+        rightPanel = new LangPanel(this, favLangsMap, [this](const std::string& lang) {
             if (lang != g_Settings.currentLangOut) {
                 g_Settings.setOutCurrentLang(lang);
-                translate(this, outputText, inputText->GetValue().ToStdWstring(), leftPanel);
+                translate(this, inputText->GetValue(), [this](const std::string& t,
+                    const std::string& sl,
+                    const std::string& err)
+                    {
+                        afterTranslateCallback(t, sl, err);
+                    });
             }
             }, g_Settings.currentLangOut);
         auto* rightPanelSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -167,7 +215,12 @@ public:
             std::wstring selected = GetSelectedText();
             m_lastActionWasPaste = true;
             inputText->SetValue(selected.c_str());
-            translate(this, outputText, selected, leftPanel);
+            translate(this, selected, [this](const std::string& t,
+                const std::string& sl,
+                const std::string& err)
+                {
+                    afterTranslateCallback(t, sl, err);
+                });
             if (!IsShown() || IsIconized())
                 Show();
             if (IsIconized())
@@ -213,7 +266,12 @@ public:
             outputText->SetValue("");
         }
         else {
-            translate(this, outputText, lastInputText, leftPanel);
+            translate(this, lastInputText, [this](const std::string& t,
+                const std::string& sl,
+                const std::string& err)
+                {
+                    afterTranslateCallback(t, sl, err);
+                });
         }
         event.Skip();
     }
@@ -231,7 +289,12 @@ public:
             outputText->SetValue("");
         }
         else {
-            translate(this, outputText, lastInputText, leftPanel);
+            translate(this, lastInputText, [this](const std::string& t,
+                const std::string& sl,
+                const std::string& err)
+                {
+                    afterTranslateCallback(t, sl, err);
+                });
         }
     }
 

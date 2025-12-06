@@ -3,10 +3,10 @@
 #include <string>
 #include <sstream>
 #include <vector>
-std::vector<std::wstring> split(const std::wstring &s, wchar_t delim) {
-	std::wstringstream ss(s);
-	std::wstring item;
-	std::vector<std::wstring> elems;
+std::vector<std::string> split(const std::string &s, char delim) {
+	std::stringstream ss(s);
+	std::string item;
+	std::vector<std::string> elems;
 	while (std::getline(ss, item, delim)) {
 		elems.push_back(item);
 	}
