@@ -179,10 +179,22 @@ public:
         debounceTimer = new wxTimer(this, ID_InputDebounceTimer);
         Bind(wxEVT_TIMER, &MyFrame::OnDebounceTimer, this, ID_InputDebounceTimer);
 
+
+
         // Создаём иконку в трее
-        wxIcon icon = wxArtProvider::GetIcon(wxART_INFORMATION, wxART_OTHER, wxSize(16, 16));
+        wxImage::AddHandler(new wxPNGHandler);
+        wxString exePath = wxStandardPaths::Get().GetExecutablePath();
+        wxFileName exeDir(exePath);
+        wxString iconPath = exeDir.GetPath() + wxFILE_SEP_PATH + "icon.png";
+
+        wxIcon icon;
+        icon.LoadFile(iconPath, wxBITMAP_TYPE_PNG);
+
+        SetIcon(icon);
+
         trayIcon = new MyTaskBarIcon(this); // Initialize trayIcon with an instance of MyTaskBarIcon
         trayIcon->SetIcon(icon, "wxTranslate");
+
 
         // Сразу сворачиваем в трей при запуске
         Hide();

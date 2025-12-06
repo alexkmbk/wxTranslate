@@ -1,0 +1,13 @@
+<svg width="64" height="64" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" style="background:#ffffff">
+  <!-- w - красный -->
+  <text x="50" y="130" font-family="Arial, Helvetica, sans-serif" 
+        font-size="180" font-weight="bold" fill="#ff3a3a" stroke="#cc0028" stroke-width="3">w</text>
+  
+  <!-- x - синий -->
+  <text x="180" y="130" font-family="Arial, Helvetica, sans-serif" 
+        font-size="180" font-weight="bold" fill="#3939ff" stroke="#0050cc" stroke-width="3">x</text>
+  
+  <!-- T - оранжевый -->
+  <text x="240" y="130" font-family="Arial, Helvetica, sans-serif" 
+        font-size="180" font-weight="bold" fill="#ff8800" stroke="#dd6600" stroke-width="3">T</text>
+</svg>

@@ -1,6 +1,9 @@
 #include <wx/wx.h>
 #include <wx/taskbar.h>
 #include <wx/artprov.h>
+#include <wx/icon.h> // Add this include
+#include <wx/stdpaths.h>
+#include <wx/filename.h>
 
 enum {
     ID_MENU_RESTORE = wxID_HIGHEST + 2,
@@ -10,7 +13,10 @@ enum {
 class MyTaskBarIcon : public wxTaskBarIcon
 {
 public:
-    MyTaskBarIcon(wxFrame* frame) : m_frame(frame) {}
+    MyTaskBarIcon(wxFrame* frame) : m_frame(frame)
+    {
+
+    }
 
     wxMenu* CreatePopupMenu() override {
         wxMenu* menu = new wxMenu;

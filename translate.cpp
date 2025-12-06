@@ -10,7 +10,6 @@
 #include "settings.h"
 #include "lang_panel.h"
 
-
 bool is_lang_code(const std::string& s) {
     return s.size() == 2 && std::isalpha(s[0]) && std::isalpha(s[1]);
 }
@@ -35,37 +34,17 @@ void translate(wxFrame* frame, wxString text, std::function<void(const std::stri
     OutputDebugStringA("translate\n");
 
     if (text.IsEmpty()) {
-        //textCtrl->SetValue("");
-		callback("", "", "");
+        callback("", "", "");
         return;
-	}
+    }
 
     std::string query{ text.ToUTF8() };
     std::string encoded = UrlEncode(query);
 
- //   wxString sl = langDetector.Detect(query);
- //   wxString tl = "en";
-
-	//if (sl == "unknown"){
- //       sl = "ru";
- //   }
-
-    //if (DetectLang(query) == Lang::English) {
-    //    sl = "en";
-    //    tl = "ru";
-	//}
-
-	// https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&dj=1&q=текст
-
-	wxString url = wxString::Format(
-		"https://translate.googleapis.com/translate_a/single?client=gtx&sl=%s&tl=%s&dt=t&q=%s",
-		g_Settings.currentLangIn, g_Settings.currentLangOut, encoded
-	);
-
-	/*wxString url = wxString::Format(
-		"https://translate.google.com/m?sl=%s&tl=%s&hl=%s&q=%s",
-		sl, tl, tl, encoded
-	);*/
+    wxString url = wxString::Format(
+        "https://translate.googleapis.com/translate_a/single?client=gtx&sl=%s&tl=%s&dt=t&q=%s",
+        g_Settings.currentLangIn, g_Settings.currentLangOut, encoded
+    );
 
     wxWebRequest req = wxWebSession::GetDefault().CreateRequest(frame, url);
 
@@ -73,40 +52,11 @@ void translate(wxFrame* frame, wxString text, std::function<void(const std::stri
         if (evt.GetState() == wxWebRequest::State_Completed) {
             wxString response = evt.GetResponse().AsString();
 
-            // Парсим предпоследний <div> с конца
-            //std::string html = std::string(response.ToUTF8());
-            //std::string result;
-            //size_t end = html.rfind("</div>");
-            //if (end != std::string::npos) {
-            //    // Найти второй с конца </div>
-            //    size_t prev_end = html.rfind("</div>", end - 1);
-            //    if (prev_end != std::string::npos) {
-            //        // Найти начало <div ...> перед prev_end
-            //        size_t div_start = html.rfind("<div", prev_end);
-            //        if (div_start != std::string::npos) {
-            //            size_t content_start = html.find('>', div_start);
-            //            if (content_start != std::string::npos && content_start + 1 <= prev_end) {
-            //                result = html.substr(content_start + 1, prev_end - content_start - 1);
-            //            }
-            //        }
-            //    }
-            //}
-
+            // Parse the penultimate <div> from the end
             std::string json = std::string(response.ToUTF8());
 
             std::vector<std::string> tokens;
             size_t pos = 0;
-
-            //while (true) {
-            //    size_t start = json.find('"', pos);
-            //    if (start == std::string::npos) break;
-
-            //    size_t end = json.find('"', start + 1);
-            //    if (end == std::string::npos) break;
-
-            //    tokens.push_back(json.substr(start + 1, end - start - 1));
-            //    pos = end + 1;
-            //}
 
             while (true) {
                 size_t start = json.find('"', pos);
@@ -124,11 +74,11 @@ void translate(wxFrame* frame, wxString text, std::function<void(const std::stri
                 return;
             }
 
-            // Первые два всегда перевод и оригинал
+            // The first two are always translation and original
             std::string translated = tokens[0];
             std::string original = tokens[1];
 
-            // Первый ISO-язык (source)
+            // The first ISO language (source)
             std::string source_lang;
             for (const auto& t : tokens) {
                 if (is_lang_code(t)) {
@@ -138,20 +88,13 @@ void translate(wxFrame* frame, wxString text, std::function<void(const std::stri
             }
 
             if (tokens.size() < 3) {
-                //textCtrl->SetValue(wxString("parsing result error"));
                 callback("", "", "parsing result error");
                 return;
             }
 
-            //std::string translated = tokens[0];
-            //std::string original = tokens[1];
-            //std::string source_language = tokens[2];
-
-            //textCtrl->SetValue(wxString::FromUTF8(translated));
             callback(translated, source_lang, "");
         }
         else if (evt.GetState() == wxWebRequest::State_Failed) {
-            //textCtrl->SetValue(wxString("HTTP request error"));
             callback("", "", "HTTP request error");
         }
     });
