@@ -39,6 +39,13 @@ void translate(wxFrame* frame, wxString text, std::function<void(const std::stri
     }
 
     std::string query{ text.ToUTF8() };
+
+    // Replace ". " with "."
+    size_t pos_dot = 0;
+    while ((pos_dot = query.find(". ", pos_dot)) != std::string::npos) {
+        query.replace(pos_dot, 2, ".");
+        pos_dot += 1; // Move past the replaced '.'
+    }
     std::string encoded = UrlEncode(query);
 
     wxString url = wxString::Format(
