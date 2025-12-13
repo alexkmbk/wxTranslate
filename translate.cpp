@@ -40,10 +40,18 @@ void translate(wxFrame* frame, wxString text, std::function<void(const std::stri
 
     std::string query{ text.ToUTF8() };
 
-    // Replace ". " with "."
+    // Replace ". " and any sequence of invisible characters after a dot with "."
     size_t pos_dot = 0;
-    while ((pos_dot = query.find(". ", pos_dot)) != std::string::npos) {
-        query.replace(pos_dot, 2, ".");
+    while ((pos_dot = query.find('.', pos_dot)) != std::string::npos) {
+        size_t next = pos_dot + 1;
+        // Skip all invisible (whitespace/control) characters after the dot
+        while (next < query.size() && std::isspace(static_cast<unsigned char>(query[next]))) {
+            ++next;
+        }
+        if (next > pos_dot + 1) {
+            // Remove the invisible characters after the dot
+            query.erase(pos_dot + 1, next - (pos_dot + 1));
+        }
         pos_dot += 1; // Move past the replaced '.'
     }
     std::string encoded = UrlEncode(query);
