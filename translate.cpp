@@ -39,25 +39,10 @@ void translate(wxFrame* frame, wxString text, std::function<void(const std::stri
     }
 
     std::string query{ text.ToUTF8() };
-
-    // Replace ". " and any sequence of invisible characters after a dot with "."
-    size_t pos_dot = 0;
-    while ((pos_dot = query.find('.', pos_dot)) != std::string::npos) {
-        size_t next = pos_dot + 1;
-        // Skip all invisible (whitespace/control) characters after the dot
-        while (next < query.size() && std::isspace(static_cast<unsigned char>(query[next]))) {
-            ++next;
-        }
-        if (next > pos_dot + 1) {
-            // Remove the invisible characters after the dot
-            query.erase(pos_dot + 1, next - (pos_dot + 1));
-        }
-        pos_dot += 1; // Move past the replaced '.'
-    }
     std::string encoded = UrlEncode(query);
 
     wxString url = wxString::Format(
-        "https://translate.googleapis.com/translate_a/single?client=gtx&sl=%s&tl=%s&dt=t&q=%s",
+        "https://translate.googleapis.com/translate_a/t?client=gtx&sl=%s&tl=%s&dt=t&q=%s",
         g_Settings.currentLangIn, g_Settings.currentLangOut, encoded
     );
 
@@ -66,46 +51,60 @@ void translate(wxFrame* frame, wxString text, std::function<void(const std::stri
     frame->Bind(wxEVT_WEBREQUEST_STATE, [callback](wxWebRequestEvent& evt) {
         if (evt.GetState() == wxWebRequest::State_Completed) {
             wxString response = evt.GetResponse().AsString();
-
-            // Parse the penultimate <div> from the end
             std::string json = std::string(response.ToUTF8());
 
             std::vector<std::string> tokens;
-            size_t pos = 0;
+            std::string current;
 
-            while (true) {
-                size_t start = json.find('"', pos);
-                if (start == std::string::npos) break;
+            bool in_string = false;
+            bool escape = false;
 
-                size_t end = json.find('"', start + 1);
-                if (end == std::string::npos) break;
-
-                tokens.push_back(json.substr(start + 1, end - start - 1));
-                pos = end + 1;
-            }
-
-            if (tokens.size() < 2) {
-                callback("", "", "Parse error: no data\n");
-                return;
-            }
-
-            // The first two are always translation and original
-            std::string translated = tokens[0];
-            std::string original = tokens[1];
-
-            // The first ISO language (source)
-            std::string source_lang;
-            for (const auto& t : tokens) {
-                if (is_lang_code(t)) {
-                    source_lang = t;
-                    break;
+            for (char c : json) {
+                if (!in_string) {
+                    if (c == '"') {
+                        in_string = true;
+                        current.clear();
+                    }
+                    continue;
                 }
+
+                // мы внутри строки
+                if (escape) {
+                    // обрабатываем экранированные символы
+                    switch (c) {
+                    case '"':  current.push_back('"');  break;
+                    case '\\': current.push_back('\\'); break;
+                    case 'n':  current.push_back('\n'); break;
+                    case 't':  current.push_back('\t'); break;
+                    case 'r':  current.push_back('\r'); break;
+                    default:   current.push_back(c);    break;
+                    }
+                    escape = false;
+                    continue;
+                }
+
+                if (c == '\\') {
+                    escape = true;
+                    continue;
+                }
+
+                if (c == '"') {
+                    // конец строки
+                    tokens.push_back(current);
+                    in_string = false;
+                    continue;
+                }
+
+                current.push_back(c);
             }
 
-            if (tokens.size() < 3) {
-                callback("", "", "parsing result error");
+            if (tokens.size() != 2) {
+                callback("", "", "Parse error: invalid response format\n");
                 return;
             }
+
+            std::string translated = tokens[0];
+            std::string source_lang = tokens[1];
 
             callback(translated, source_lang, "");
         }
