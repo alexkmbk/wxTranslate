@@ -98,13 +98,13 @@ void translate(wxFrame* frame, wxString text, std::function<void(const std::stri
                 current.push_back(c);
             }
 
-            if (tokens.size() != 2) {
+            if (tokens.size() == 0) {
                 callback("", "", "Parse error: invalid response format\n");
                 return;
             }
 
             std::string translated = tokens[0];
-            std::string source_lang = tokens[1];
+            std::string source_lang = tokens.size() == 2 ? tokens[1] : "";
 
             callback(translated, source_lang, "");
         }

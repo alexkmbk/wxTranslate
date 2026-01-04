@@ -14,4 +14,18 @@ find_package(wxWidgets CONFIG REQUIRED)
 
 add_executable(wxTranslate WIN32 main.cpp "translate.cpp" taskbar.cpp "selected_text.cpp" "selected_text.h" utils.cpp "settings.cpp" "lang_panel.h" "lang_panel.cpp")
 
+# ------------------------------------------------------------
+# Windows-specific
+# ------------------------------------------------------------
+if (WIN32)
+    target_sources(wxTranslate PRIVATE
+        resources/app.rc
+    )
+
+    # GUI app (no console)
+    set_target_properties(wxTranslate PROPERTIES
+        WIN32_EXECUTABLE TRUE
+    )
+endif()
+
 target_link_libraries(wxTranslate PRIVATE wx::core wx::base wx::net wx::adv)

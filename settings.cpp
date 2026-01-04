@@ -15,20 +15,24 @@ Settings g_Settings;
 
 void Settings::load() {
     
-    if (!fs::exists(settingsFilePath)) {
-        return;
+    if (fs::exists(settingsFilePath)) {
+        CSimpleIniA ini;
+        ini.SetUnicode();
+        ini.LoadFile(settingsFilePath.c_str());
+        favLangs = split(ini.GetValue("Translate", "FavoriteLanguages", ""), ',');
+        currentLangIn = ini.GetValue("Translate", "CurrentLanguageIn", "");
+        currentLangOut = ini.GetValue("Translate", "CurrentLanguageOut", "");
     }
-    CSimpleIniA ini;
-    ini.SetUnicode();
-    ini.LoadFile(settingsFilePath.c_str());
-    favLangs = split(ini.GetValue("Translate", "FavoriteLanguages", ""), ',');
-    currentLangIn = ini.GetValue("Translate", "CurrentLanguageIn", "");
-    currentLangOut = ini.GetValue("Translate", "CurrentLanguageOut", "");
-    if (currentLangIn.empty() && !favLangs.empty()) {
-        currentLangIn = favLangs[0];
+    
+
+    if (favLangs.empty()) {
+        favLangs.push_back("en");
+    }
+    if (currentLangIn.empty()) {
+        currentLangIn = "auto";
 	}
-    if (currentLangOut.empty() && favLangs.size() > 1) {
-        currentLangOut = favLangs[1];
+    if (currentLangOut.empty() && favLangs.size() > 0) {
+        currentLangOut = favLangs[0];
     }
 }
 
